@@ -60,4 +60,5 @@ WHERE TO GET AN API KEY
 
 SUPPORT
 -------
-  Questions and bug reports: [discord/github link]
+  Questions and bug reports:
+  https://github.com/losyakov199566-creator/KSAAdvisor/issues
