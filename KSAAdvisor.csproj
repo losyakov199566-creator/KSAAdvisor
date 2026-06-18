@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <AssemblyName>KSAAdvisor</AssemblyName>
+    <RootNamespace>KSAAdvisor</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <KsaDllsDir Condition="'$(KsaDllsPath)' != ''">$(KsaDllsPath)</KsaDllsDir>
+    <KsaDllsDir Condition="'$(KsaDllsPath)' == ''">$(MSBuildProjectDirectory)\..\KSA_dlls</KsaDllsDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Brutal.Core.Common">
+      <HintPath>$(KsaDllsDir)\Brutal.Core.Common.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Brutal.Core.Numerics">
+      <HintPath>$(KsaDllsDir)\Brutal.Core.Numerics.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Brutal.Core.Strings">
+      <HintPath>$(KsaDllsDir)\Brutal.Core.Strings.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Brutal.ImGui">
+      <HintPath>$(KsaDllsDir)\Brutal.ImGui.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Brutal.ImGui.Extensions">
+      <HintPath>$(KsaDllsDir)\Brutal.ImGui.Extensions.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="KSA">
+      <HintPath>$(KsaDllsDir)\KSA.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="starmap.api" Version="0.3.6" />
+  </ItemGroup>
+
+</Project>
