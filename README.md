@@ -89,3 +89,13 @@ To customize the advisor's persona, create a `persona.txt` next to the
 DLL — its contents replace the default character description.
 
 ## Logs
+%USERPROFILE%\Documents\My Games\Kitten Space Agency\mods\KSAAdvisor\advisor.log
+
+## Support
+
+Questions, bug reports, and feature requests:
+[github.com/losyakov199566-creator/KSAAdvisor/issues](https://github.com/losyakov199566-creator/KSAAdvisor/issues)
+
+## License
+
+MIT
