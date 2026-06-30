@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Brutal.ImGuiApi;
 using Brutal.Numerics;
+using KSA;
 
 namespace KSAAdvisor;
 
@@ -24,6 +25,9 @@ public class AdvisorWindow
     private string _streamingText = "";
     private readonly object _streamLock = new();
     private CancellationTokenSource? _cts;
+
+    private bool _showSetup          = false;
+    private bool _setupBuffersLoaded = false;
 
     // ── Win32 буфер обмена ────────────────────────────────────────────────
 
@@ -72,30 +76,66 @@ public class AdvisorWindow
             return;
         }
 
-        if (string.IsNullOrEmpty(_config.ApiKey) || string.IsNullOrEmpty(_config.Model))
-            DrawSetup();
+        bool needSetup = string.IsNullOrEmpty(_config.ApiKey) || string.IsNullOrEmpty(_config.Model);
+
+        if (needSetup || _showSetup)
+        {
+            if (!_setupBuffersLoaded)
+            {
+                LoadSetupBuffers();
+                _setupBuffersLoaded = true;
+            }
+            DrawSetup(allowCancel: !needSetup);
+        }
         else
+        {
             DrawChat();
+        }
 
         ImGui.End();
     }
 
     // ── Экран настройки API ключа ──────────────────────────────────────────
 
-    private void DrawSetup()
+    private void LoadSetupBuffers()
+    {
+        ClearSetupBuffers();
+
+        void Fill(byte[] buf, string? val)
+        {
+            if (string.IsNullOrEmpty(val)) return;
+            var b = Encoding.UTF8.GetBytes(val);
+            Array.Copy(b, buf, Math.Min(b.Length, buf.Length - 1));
+        }
+
+        Fill(_apiKeyBuf,  _config.ApiKey);
+        Fill(_modelBuf,   _config.Model);
+        Fill(_baseUrlBuf, _config.BaseUrl);
+    }
+
+    private void ClearSetupBuffers()
+    {
+        Array.Clear(_apiKeyBuf,  0, _apiKeyBuf.Length);
+        Array.Clear(_modelBuf,   0, _modelBuf.Length);
+        Array.Clear(_baseUrlBuf, 0, _baseUrlBuf.Length);
+    }
+
+    private void DrawSetup(bool allowCancel)
     {
         ImGui.Spacing();
-        ImGui.TextWrapped("Enter your API credentials to use the advisor.");
+        ImGui.TextWrapped(allowCancel
+            ? "Update your API credentials."
+            : "Enter your API credentials to use the advisor.");
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
 
         var fullW = ImGui.GetContentRegionAvail().X;
 
-        // API Key
+        // API Key (замаскирован звёздочками)
         ImGui.Text("API Key");
         ImGui.SetNextItemWidth(fullW);
-        ImGui.InputText("##apikey", _apiKeyBuf);
+        ImGui.InputText("##apikey", _apiKeyBuf, ImGuiInputTextFlags.Password);
         ImGui.Spacing();
 
         // Model
@@ -108,6 +148,7 @@ public class AdvisorWindow
         ImGui.Text("Provider URL");
         ImGui.SetNextItemWidth(fullW);
         ImGui.InputText("##baseurl", _baseUrlBuf);
+        ImGui.TextWrapped("Leave empty to use OpenRouter (default).");
         ImGui.Spacing();
 
         if (ImGui.Button("Save", new float2(120, 0)))
@@ -129,9 +170,20 @@ public class AdvisorWindow
                 }
                 _config.Save();
                 _llm.UpdateConfig(_config);
-                Array.Clear(_apiKeyBuf,  0, _apiKeyBuf.Length);
-                Array.Clear(_modelBuf,   0, _modelBuf.Length);
-                Array.Clear(_baseUrlBuf, 0, _baseUrlBuf.Length);
+                ClearSetupBuffers();
+                _showSetup          = false;
+                _setupBuffersLoaded = false;
+            }
+        }
+
+        if (allowCancel)
+        {
+            ImGui.SameLine();
+            if (ImGui.Button("Cancel", new float2(120, 0)))
+            {
+                ClearSetupBuffers();
+                _showSetup          = false;
+                _setupBuffersLoaded = false;
             }
         }
     }
@@ -187,13 +239,23 @@ public class AdvisorWindow
             _lastSessId = session.Id;
         }
 
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+        const float settingsW = 70f;
+        var inputW = ImGui.GetContentRegionAvail().X - settingsW - 8;
+
+        ImGui.SetNextItemWidth(inputW);
         if (ImGui.InputText("##chatname", _nameBuf, ImGuiInputTextFlags.EnterReturnsTrue))
         {
             var name = Encoding.UTF8.GetString(_nameBuf).TrimEnd('\0').Trim();
             session.Name = string.IsNullOrEmpty(name) ? "New chat" : name;
             _lastSessId  = "";
             _chats.SaveCurrent();
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Settings", new float2(settingsW, 0)))
+        {
+            _showSetup          = true;
+            _setupBuffersLoaded = false;
         }
     }
 
@@ -203,8 +265,10 @@ public class AdvisorWindow
 
         ImGui.BeginChild("##history", new float2(0, childH), ImGuiChildFlags.None);
 
-        foreach (var msg in _chats.Current.Messages)
+        var messages = _chats.Current.Messages;
+        for (int i = 0; i < messages.Count; i++)
         {
+            var msg = messages[i];
             if (msg.Role == "user")
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, new ImColor8(140, 199, 255, 255));
@@ -284,6 +348,8 @@ public class AdvisorWindow
         var systemPrompt = _reader.BuildStaticSystemPrompt();
         var userMsg      = _reader.BuildDynamicUserMessage(question);
 
+        AdvisorMod.Log($"Q: {question}");
+
         session.Messages.Add(new Message("user", question));
 
         var history = session.Messages.SkipLast(1).ToList();
@@ -317,7 +383,12 @@ public class AdvisorWindow
             }
             finally
             {
-                session.Messages.Add(new Message("assistant", sb.ToString()));
+                var response = sb.ToString().Trim();
+                if (!string.IsNullOrEmpty(response))
+                    session.Messages.Add(new Message("assistant", response));
+                else
+                    AdvisorMod.Log("Empty response — message not added to chat");
+
                 lock (_streamLock) _streamingText = "";
                 _isStreaming = false;
                 _scrollToEnd = true;

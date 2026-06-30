@@ -5,9 +5,16 @@ namespace KSAAdvisor;
 public class Config
 {
     public string ApiKey    { get; set; } = "";
-    public string BaseUrl   { get; set; } = "https://openrouter.ai/api/v1";
+    public string BaseUrl   { get; set; } = "";
     public string Model     { get; set; } = "";
     public int    MaxTokens { get; set; } = 512;
+
+    // Сколько последних сообщений чата отправлять модели как историю
+    public int HistoryLimit { get; set; } = 10;
+
+    // "beginner" | "experienced" (по умолчанию) | "expert"
+    // Влияет на то, сколько объяснений модель добавляет к ответам.
+    public string UserSkillLevel { get; set; } = "experienced";
 
     // Папка рядом с KSAAdvisor.dll
     public static string ModDir =>

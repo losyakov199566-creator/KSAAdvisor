@@ -14,9 +14,9 @@ public class AdvisorMod
         try
         {
             var config = Config.Load();
-            var reader = new GameStateReader();
+            var reader = new GameStateReader(config);
             var chats  = new ChatManager();
-            var llm    = new LLMClient(config);
+            var llm    = new LLMClient(config, reader);
 
             _window = new AdvisorWindow(chats, reader, llm, config);
 
