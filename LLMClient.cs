@@ -12,6 +12,7 @@ public class LLMClient
     private readonly GameStateReader _reader;
     private Config                   _config;
 
+    // Используется если пользователь не указал свой Provider URL в Settings
     private const string DefaultBaseUrl = "https://openrouter.ai/api/v1";
 
     private string EffectiveBaseUrl =>
@@ -73,7 +74,7 @@ public class LLMClient
             type     = "function",
             function = new {
                 name        = "get_burns",
-                description = "Get currently planned maneuvers (burns) in the vessel flight plan. Always check this before creating a new maneuver.",
+                description = "Get currently planned maneuvers (burns) in the vessel's flight plan, with time until burn and dV. Always check this before suggesting or creating a new maneuver, to avoid duplicating an existing one.",
                 parameters  = new { type = "object", properties = new { }, required = Array.Empty<string>() }
             }
         },
@@ -81,7 +82,7 @@ public class LLMClient
             type     = "function",
             function = new {
                 name        = "get_other_vessels",
-                description = "Get list of other vessels in the system with their orbits.",
+                description = "Get list of other vessels in the system with their orbits, useful for rendezvous planning.",
                 parameters  = new { type = "object", properties = new { }, required = Array.Empty<string>() }
             }
         },
@@ -89,7 +90,7 @@ public class LLMClient
             type     = "function",
             function = new {
                 name        = "create_circularization_burn",
-                description = "Create a real maneuver node to circularize the orbit. Check get_burns() first to avoid duplicates.",
+                description = "Create a real maneuver node in the flight plan to circularize the orbit at the next apoapsis or periapsis. Check get_burns() first to avoid creating a duplicate maneuver.",
                 parameters  = new {
                     type       = "object",
                     properties = new {
@@ -195,7 +196,7 @@ public class LLMClient
                         WarpToTime = targetTime
                     });
                     var human = GameStateReader.FmtDuration(days);
-                    AdvisorMod.Log($"Warp initiated: +{days:F5} days (~{human})");
+                    AdvisorMod.Log($"Warp initiated via tool: +{days:F5} days (~{human})");
                     return $"Time warp initiated: +{days:F5} days (~{human}).";
                 }
 
@@ -228,6 +229,10 @@ public class LLMClient
             string? connError  = null;
             HttpResponseMessage? resp = null;
 
+            // require_parameters — OpenRouter-specific, не отправляем прямым провайдерам
+            var isOpenRouter = string.IsNullOrWhiteSpace(_config.BaseUrl)
+                || EffectiveBaseUrl.Contains("openrouter.ai");
+
             var body = JsonSerializer.Serialize(new
             {
                 model       = _config.Model,
@@ -236,7 +241,7 @@ public class LLMClient
                 messages,
                 tools       = isLastRound ? null : (object)Tools,
                 tool_choice = isLastRound ? null : (object)"auto",
-                provider    = new { require_parameters = true }
+                provider    = isOpenRouter ? new { require_parameters = true } : null
             }, JsonOpts);
 
             try
