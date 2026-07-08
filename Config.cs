@@ -5,11 +5,12 @@ namespace KSAAdvisor;
 public class Config
 {
     public string ApiKey    { get; set; } = "";
-    public string BaseUrl   { get; set; } = "https://openrouter.ai/api/v1";
+    public string BaseUrl   { get; set; } = "";
     public string Model     { get; set; } = "";
     public int    MaxTokens { get; set; } = 512;
+    public int HistoryLimit { get; set; } = 10;
+    public string UserSkillLevel { get; set; } = "experienced";
 
-    // Папка рядом с KSAAdvisor.dll
     public static string ModDir =>
         Path.GetDirectoryName(typeof(Config).Assembly.Location) ?? ".";
 

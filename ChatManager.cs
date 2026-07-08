@@ -2,10 +2,8 @@ using System.Text.Json;
 
 namespace KSAAdvisor;
 
-// Одно сообщение в чате
 public record Message(string Role, string Content);
 
-// Одна сессия (вкладка)
 public class ChatSession
 {
     public string        Id       { get; init; } = Guid.NewGuid().ToString("N")[..8];
@@ -13,7 +11,6 @@ public class ChatSession
     public List<Message> Messages { get; set;  } = new();
 }
 
-// Управляет всеми сессиями, сохраняет/загружает с диска
 public class ChatManager
 {
     private readonly string _dir;
@@ -46,7 +43,6 @@ public class ChatManager
     {
         if (Sessions.Count <= 1)
         {
-            // Последнюю сессию не удаляем — просто очищаем
             Current.Messages.Clear();
             Current.Name = "New chat";
             return;

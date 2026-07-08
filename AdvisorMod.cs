@@ -14,9 +14,9 @@ public class AdvisorMod
         try
         {
             var config = Config.Load();
-            var reader = new GameStateReader();
+            var reader = new GameStateReader(config);
             var chats  = new ChatManager();
-            var llm    = new LLMClient(config);
+            var llm    = new LLMClient(config, reader);
 
             _window = new AdvisorWindow(chats, reader, llm, config);
 
@@ -46,9 +46,6 @@ public class AdvisorMod
         _window?.SaveAll();
         Log("Unloaded, history saved.");
     }
-
-    // ── Логирование ───────────────────────────────────────────────────────
-    // Пишет в консоль StarMap и в файл mods\KSAAdvisor\advisor.log
 
     internal static void Log(string message)
     {
