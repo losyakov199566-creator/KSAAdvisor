@@ -34,19 +34,16 @@ replace specialized mods (orbit planners, builders, etc).
 
 ## Installation
 
-**Easy:** run `install.bat` from the extracted folder — it does everything
-automatically.
-
-**Manual:**
-
-1. Extract the `KSAAdvisor` folder to:
-   `Documents\My Games\Kitten Space Agency\mods\`
-2. Add to `Documents\My Games\Kitten Space Agency\manifest.toml`:
+1. Extract the downloaded zip to any folder
+2. Run `install.bat` — it copies the mod files to the right place
+3. Add to `Documents\My Games\Kitten Space Agency\manifest.toml`:
 ```toml
-   [[mods]]
-   id = "KSAAdvisor"
-   enabled = true
+[[mods]]
+id = "KSAAdvisor"
+enabled = true
 ```
+
+> `install.bat` will show you the exact line to add if the entry is missing.
 
 ## First launch
 
@@ -72,24 +69,33 @@ Direct provider access is also supported:
 - [Groq](https://console.groq.com/keys)
 - [Mistral](https://console.mistral.ai/api-keys)
 
-If you're using a provider other than OpenRouter, enter their URL in the
-**Provider URL** field on the setup screen.
+If you're using a provider other than OpenRouter, enter their base URL in the
+**Provider URL** field on the setup screen (e.g. `https://api.openai.com/v1`).
 
 ## Configuration
 
-A `config.json` is generated next to the DLL on first run. You can edit
-it directly to tune behavior:
+`config.json` is created next to the DLL after you save your credentials
+for the first time. You can edit it directly to tune behavior:
 
 - `ApiKey`, `BaseUrl`, `Model`, `MaxTokens` — provider settings
 - `HistoryLimit` — how many past messages to send as context (default: 10)
 - `UserSkillLevel` — `"beginner"`, `"experienced"` (default), or `"expert"`.
   Beginners get short explanations of terms; experts get pure numbers.
 
+> `ApiKey` is stored in plain text in `config.json`. Do not share this file.
+
 To customize the advisor's persona, create a `persona.txt` next to the
 DLL — its contents replace the default character description.
 
 ## Logs
+
+```
 %USERPROFILE%\Documents\My Games\Kitten Space Agency\mods\KSAAdvisor\advisor.log
+```
+
+## Building from source
+
+See [SETUP.md](SETUP.md).
 
 ## Support
 
