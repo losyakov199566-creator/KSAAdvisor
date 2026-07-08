@@ -150,7 +150,7 @@ public class GameStateReader
                 var apo  = ToDouble(orb.Orbit.Apoapsis);
                 var peri = ToDouble(orb.Orbit.Periapsis);
                 var per  = ToDouble(orb.Orbit.Period);
-                sb.AppendLine($"  Orbit:  {FmtDist(peri)} - {FmtDist(apo)}");
+                sb.AppendLine($"  Orbit:  {FmtDist(peri)} – {FmtDist(apo)}");
                 sb.AppendLine($"  Period: {FmtPeriod(per)}");
                 sb.AppendLine($"  Around: {orb.Parent?.Id ?? "?"}");
 
@@ -163,7 +163,7 @@ public class GameStateReader
             {
                 sb.AppendLine($"  Radius: {cel.MeanRadius / 1000.0:F0} km");
                 if (cel.Mass > 0)
-                    sb.AppendLine($"  mu: {6.6743e-11 * cel.Mass:E3} m3/s2");
+                    sb.AppendLine($"  μ: {6.6743e-11 * cel.Mass:E3} m³/s²");
                 if (double.IsFinite(cel.Eccentricity))
                     sb.AppendLine($"  Eccentricity: {cel.Eccentricity:F4}");
                 if (double.IsFinite(cel.Inclination))
@@ -316,7 +316,7 @@ public class GameStateReader
                 var r     = ToDouble(orbit.Parent.MeanRadius);
                 var apo   = (ToDouble(orbit.Apoapsis)  - r) / 1000.0;
                 var peri  = (ToDouble(orbit.Periapsis) - r) / 1000.0;
-                sb.AppendLine($"  {v.Id}: {apo:F0}x{peri:F0} km around {orbit.Parent.Id}");
+                sb.AppendLine($"  {v.Id}: {apo:F0}×{peri:F0} km around {orbit.Parent.Id}");
             }
             return sb.ToString();
         }
@@ -331,12 +331,16 @@ public class GameStateReader
     {
         try
         {
+            var atNorm = at.Trim().ToLowerInvariant();
+            if (atNorm != "apoapsis" && atNorm != "periapsis")
+                return $"Invalid value '{at}'. Must be exactly 'apoapsis' or 'periapsis'.";
+
             var v = GetVehicle();
             if (v?.Orbit == null) return "No vessel in flight.";
             if (v.Orbit.Eccentricity >= 1.0) return "Orbit is hyperbolic, cannot circularize.";
 
             var now      = Universe.GetElapsedSimTime();
-            var burnTime = at.ToLowerInvariant().Contains("peri")
+            var burnTime = atNorm.Contains("peri")
                 ? v.Orbit.GetNextPeriapsisTime(now)
                 : v.Orbit.GetNextApoapsisTime(now);
 
@@ -363,9 +367,9 @@ public class GameStateReader
 
             var inDays = (burnTime - now).Seconds() / 86400.0;
 
-            AdvisorMod.Log($"Circularization burn created at {at}, dV={dvCci.Length():F1} m/s, in {inDays:F5} days");
+            AdvisorMod.Log($"Circularization burn created at {atNorm}, dV={dvCci.Length():F1} m/s, in {inDays:F5} days");
             return
-                $"Circularization burn created at {at}:\n" +
+                $"Circularization burn created at {atNorm}:\n" +
                 $"  dV: {dvCci.Length():F1} m/s\n" +
                 $"  In: {inDays:F5} days (~{FmtDuration(inDays)})\n" +
                 $"  For warp_time, use the exact decimal days value: {inDays:F5}";
