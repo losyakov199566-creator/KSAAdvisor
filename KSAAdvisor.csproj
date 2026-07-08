@@ -15,6 +15,7 @@
   <PropertyGroup>
     <KsaDllsDir Condition="'$(KsaDllsPath)' != ''">$(KsaDllsPath)</KsaDllsDir>
     <KsaDllsDir Condition="'$(KsaDllsPath)' == ''">$(MSBuildProjectDirectory)\..\KSA_dlls</KsaDllsDir>
+    <KsaGameDir Condition="'$(KsaGameDir)' == ''">D:\Kitten Space Agency</KsaGameDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -40,6 +41,10 @@
     </Reference>
     <Reference Include="KSA">
       <HintPath>$(KsaDllsDir)\KSA.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="BepuUtilities">
+      <HintPath>$(KsaGameDir)\BepuUtilities.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
