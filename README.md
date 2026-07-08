@@ -9,8 +9,6 @@ calculator.
 
 **[➜ Download KSAAdvisor v1.0](https://github.com/losyakov199566-creator/KSAAdvisor/releases/latest/download/KSAAdvisor.v1.0.zip)**
 
-Then follow the [installation steps](#installation) below.
-
 ---
 
 ## What it does
@@ -35,22 +33,9 @@ replace specialized mods (orbit planners, builders, etc).
 ## Installation
 
 1. Extract the downloaded zip to any folder
-2. Run `install.bat` — it copies the mod files to the right place
-3. Add to `Documents\My Games\Kitten Space Agency\manifest.toml`:
-```toml
-[[mods]]
-id = "KSAAdvisor"
-enabled = true
-```
-
-> `install.bat` will show you the exact line to add if the entry is missing.
-
-## First launch
-
-1. Start the game through `StarMap.Loader.exe`
-2. Press **F2** to open the advisor window
-3. Enter your API key and model name, click **Save**
-4. Ask your first question
+2. Run `install.bat` — it copies all files and updates `manifest.toml` automatically
+3. Launch the game via `StarMap.Loader.exe`
+4. Press **F2**, enter your API key and model, click **Save**
 
 ## Where to get an API key
 
@@ -84,8 +69,7 @@ for the first time. You can edit it directly to tune behavior:
 
 > `ApiKey` is stored in plain text in `config.json`. Do not share this file.
 
-To customize the advisor's persona, create a `persona.txt` next to the
-DLL — its contents replace the default character description.
+To customize the advisor's persona, edit `prompt.txt` next to the DLL.
 
 ## Logs
 
