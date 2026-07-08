@@ -189,6 +189,10 @@ public class LLMClient
                         string.IsNullOrWhiteSpace(argsJson) ? "{}" : argsJson);
                     var days = doc.RootElement.TryGetProperty("days", out var d)
                         ? d.GetDouble() : 0;
+                    if (!double.IsFinite(days) || days <= 0)
+                        return "Invalid warp duration: must be a positive number.";
+                    if (days > 3650)
+                        return $"Warp duration too large ({days:F1} days). Maximum is 3650 days (10 years). Split into smaller warps if needed.";
                     var targetTime = Universe.GetElapsedSimTime() + (days * 86400.0);
                     InputEvents.AutoWarpBuffer.Add(new InputEvents.AutoWarpData
                     {
