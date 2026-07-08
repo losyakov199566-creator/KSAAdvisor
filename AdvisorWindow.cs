@@ -14,7 +14,7 @@ public class AdvisorWindow
     private readonly Config          _config;
 
     private bool   _open          = false;
-    private byte[] _inputBuf      = new byte[512];
+    private byte[] _inputBuf      = new byte[2048];
     private byte[] _apiKeyBuf     = new byte[256];
     private byte[] _modelBuf      = new byte[128];
     private byte[] _baseUrlBuf    = new byte[256];
@@ -154,12 +154,8 @@ public class AdvisorWindow
             {
                 _config.ApiKey  = key;
                 _config.Model   = model;
-                if (!string.IsNullOrEmpty(baseUrl))
-                {
-                    if (!baseUrl.StartsWith("http"))
-                        baseUrl = "https://" + baseUrl;
-                    _config.BaseUrl = baseUrl;
-                }
+                _config.BaseUrl = baseUrl.StartsWith("http") ? baseUrl :
+                                  !string.IsNullOrEmpty(baseUrl) ? "https://" + baseUrl : "";
                 _config.Save();
                 _llm.UpdateConfig(_config);
                 ClearSetupBuffers();
