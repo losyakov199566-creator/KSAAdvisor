@@ -2,8 +2,10 @@ using System.Text.Json;
 
 namespace KSAAdvisor;
 
+// Одно сообщение в чате
 public record Message(string Role, string Content);
 
+// Одна сессия (вкладка)
 public class ChatSession
 {
     public string        Id       { get; init; } = Guid.NewGuid().ToString("N")[..8];
@@ -11,6 +13,7 @@ public class ChatSession
     public List<Message> Messages { get; set;  } = new();
 }
 
+// Управляет всеми сессиями, сохраняет/загружает с диска
 public class ChatManager
 {
     private readonly string _dir;
@@ -85,13 +88,20 @@ public class ChatManager
 
     private void LoadAll()
     {
+        var config = Config.Load();
         foreach (var file in Directory.GetFiles(_dir, "*.json").Order())
         {
             try
             {
                 var s = JsonSerializer.Deserialize<ChatSession>(
                     File.ReadAllText(file), _opts);
-                if (s != null) Sessions.Add(s);
+                if (s == null) continue;
+                // Обрезаем старые сообщения если чат вырос за лимит
+                if (s.Messages.Count > config.MaxHistoryMessages)
+                    s.Messages = s.Messages
+                        .TakeLast(config.MaxHistoryMessages)
+                        .ToList();
+                Sessions.Add(s);
             }
             catch { }
         }

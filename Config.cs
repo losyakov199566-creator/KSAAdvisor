@@ -7,10 +7,19 @@ public class Config
     public string ApiKey    { get; set; } = "";
     public string BaseUrl   { get; set; } = "";
     public string Model     { get; set; } = "";
-    public int    MaxTokens { get; set; } = 512;
+    public int    MaxTokens { get; set; } = 1500;
+
+    // Сколько последних сообщений чата отправлять модели как историю
     public int HistoryLimit { get; set; } = 10;
+
+    // Максимум сообщений хранить в файле чата (старые обрезаются при загрузке)
+    public int MaxHistoryMessages { get; set; } = 200;
+
+    // "beginner" | "experienced" (по умолчанию) | "expert"
+    // Влияет на то, сколько объяснений модель добавляет к ответам.
     public string UserSkillLevel { get; set; } = "experienced";
 
+    // Папка рядом с KSAAdvisor.dll
     public static string ModDir =>
         Path.GetDirectoryName(typeof(Config).Assembly.Location) ?? ".";
 
