@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Brutal.ImGuiApi;
 using Brutal.Numerics;
+using KSA;
 
 namespace KSAAdvisor;
 
@@ -25,7 +26,10 @@ public class AdvisorWindow
     private readonly object _streamLock = new();
     private CancellationTokenSource? _cts;
 
-    // ── Win32 буфер обмена ────────────────────────────────────────────────
+    private bool _showSetup          = false;
+    private bool _setupBuffersLoaded = false;
+
+    // ── Win32 clipboard ──────────────────────────────────────────────────
 
     [DllImport("user32.dll")] static extern bool OpenClipboard(IntPtr h);
     [DllImport("user32.dll")] static extern bool CloseClipboard();
@@ -38,7 +42,7 @@ public class AdvisorWindow
         if (!OpenClipboard(IntPtr.Zero)) return "";
         try
         {
-            var h = GetClipboardData(13); // CF_UNICODETEXT
+            var h = GetClipboardData(13);
             if (h == IntPtr.Zero) return "";
             var p = GlobalLock(h);
             try { return Marshal.PtrToStringUni(p) ?? ""; }
@@ -46,8 +50,6 @@ public class AdvisorWindow
         }
         finally { CloseClipboard(); }
     }
-
-    // ──────────────────────────────────────────────────────────────────────
 
     public AdvisorWindow(ChatManager chats, GameStateReader reader, LLMClient llm, Config config)
     {
@@ -72,42 +74,74 @@ public class AdvisorWindow
             return;
         }
 
-        if (string.IsNullOrEmpty(_config.ApiKey) || string.IsNullOrEmpty(_config.Model))
-            DrawSetup();
+        bool needSetup = string.IsNullOrEmpty(_config.ApiKey) || string.IsNullOrEmpty(_config.Model);
+
+        if (needSetup || _showSetup)
+        {
+            if (!_setupBuffersLoaded)
+            {
+                LoadSetupBuffers();
+                _setupBuffersLoaded = true;
+            }
+            DrawSetup(allowCancel: !needSetup);
+        }
         else
+        {
             DrawChat();
+        }
 
         ImGui.End();
     }
 
-    // ── Экран настройки API ключа ──────────────────────────────────────────
+    private void LoadSetupBuffers()
+    {
+        ClearSetupBuffers();
 
-    private void DrawSetup()
+        void Fill(byte[] buf, string? val)
+        {
+            if (string.IsNullOrEmpty(val)) return;
+            var b = Encoding.UTF8.GetBytes(val);
+            Array.Copy(b, buf, Math.Min(b.Length, buf.Length - 1));
+        }
+
+        Fill(_apiKeyBuf,  _config.ApiKey);
+        Fill(_modelBuf,   _config.Model);
+        Fill(_baseUrlBuf, _config.BaseUrl);
+    }
+
+    private void ClearSetupBuffers()
+    {
+        Array.Clear(_apiKeyBuf,  0, _apiKeyBuf.Length);
+        Array.Clear(_modelBuf,   0, _modelBuf.Length);
+        Array.Clear(_baseUrlBuf, 0, _baseUrlBuf.Length);
+    }
+
+    private void DrawSetup(bool allowCancel)
     {
         ImGui.Spacing();
-        ImGui.TextWrapped("Enter your API credentials to use the advisor.");
+        ImGui.TextWrapped(allowCancel
+            ? "Update your API credentials."
+            : "Enter your API credentials to use the advisor.");
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
 
         var fullW = ImGui.GetContentRegionAvail().X;
 
-        // API Key
         ImGui.Text("API Key");
         ImGui.SetNextItemWidth(fullW);
-        ImGui.InputText("##apikey", _apiKeyBuf);
+        ImGui.InputText("##apikey", _apiKeyBuf, ImGuiInputTextFlags.Password);
         ImGui.Spacing();
 
-        // Model
         ImGui.Text("Model");
         ImGui.SetNextItemWidth(fullW);
         ImGui.InputText("##model", _modelBuf);
         ImGui.Spacing();
 
-        // Base URL
         ImGui.Text("Provider URL");
         ImGui.SetNextItemWidth(fullW);
         ImGui.InputText("##baseurl", _baseUrlBuf);
+        ImGui.TextWrapped("Leave empty to use OpenRouter (default).");
         ImGui.Spacing();
 
         if (ImGui.Button("Save", new float2(120, 0)))
@@ -122,21 +156,29 @@ public class AdvisorWindow
                 _config.Model   = model;
                 if (!string.IsNullOrEmpty(baseUrl))
                 {
-                    // добавляем https:// если пользователь не написал
                     if (!baseUrl.StartsWith("http"))
                         baseUrl = "https://" + baseUrl;
                     _config.BaseUrl = baseUrl;
                 }
                 _config.Save();
                 _llm.UpdateConfig(_config);
-                Array.Clear(_apiKeyBuf,  0, _apiKeyBuf.Length);
-                Array.Clear(_modelBuf,   0, _modelBuf.Length);
-                Array.Clear(_baseUrlBuf, 0, _baseUrlBuf.Length);
+                ClearSetupBuffers();
+                _showSetup          = false;
+                _setupBuffersLoaded = false;
+            }
+        }
+
+        if (allowCancel)
+        {
+            ImGui.SameLine();
+            if (ImGui.Button("Cancel", new float2(120, 0)))
+            {
+                ClearSetupBuffers();
+                _showSetup          = false;
+                _setupBuffersLoaded = false;
             }
         }
     }
-
-    // ── Основной чат ───────────────────────────────────────────────────────
 
     private void DrawChat()
     {
@@ -187,13 +229,23 @@ public class AdvisorWindow
             _lastSessId = session.Id;
         }
 
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+        const float settingsW = 70f;
+        var inputW = ImGui.GetContentRegionAvail().X - settingsW - 8;
+
+        ImGui.SetNextItemWidth(inputW);
         if (ImGui.InputText("##chatname", _nameBuf, ImGuiInputTextFlags.EnterReturnsTrue))
         {
             var name = Encoding.UTF8.GetString(_nameBuf).TrimEnd('\0').Trim();
             session.Name = string.IsNullOrEmpty(name) ? "New chat" : name;
             _lastSessId  = "";
             _chats.SaveCurrent();
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Settings", new float2(settingsW, 0)))
+        {
+            _showSetup          = true;
+            _setupBuffersLoaded = false;
         }
     }
 
@@ -203,8 +255,10 @@ public class AdvisorWindow
 
         ImGui.BeginChild("##history", new float2(0, childH), ImGuiChildFlags.None);
 
-        foreach (var msg in _chats.Current.Messages)
+        var messages = _chats.Current.Messages;
+        for (int i = 0; i < messages.Count; i++)
         {
+            var msg = messages[i];
             if (msg.Role == "user")
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, new ImColor8(140, 199, 255, 255));
@@ -243,7 +297,6 @@ public class AdvisorWindow
 
         bool enter = ImGui.InputText("##q", _inputBuf, ImGuiInputTextFlags.EnterReturnsTrue);
 
-        // Ctrl+V в поле ввода
         if (ImGui.IsItemFocused() && ImGui.GetIO().KeyCtrl && ImGui.IsKeyPressed(ImGuiKey.V))
         {
             var paste = GetClipboard();
@@ -277,12 +330,12 @@ public class AdvisorWindow
         }
     }
 
-    // ── Отправка вопроса ───────────────────────────────────────────────────
-
     private void SendQuestion(ChatSession session, string question)
     {
         var systemPrompt = _reader.BuildStaticSystemPrompt();
         var userMsg      = _reader.BuildDynamicUserMessage(question);
+
+        AdvisorMod.Log($"Q: {question}");
 
         session.Messages.Add(new Message("user", question));
 
@@ -317,7 +370,12 @@ public class AdvisorWindow
             }
             finally
             {
-                session.Messages.Add(new Message("assistant", sb.ToString()));
+                var response = sb.ToString().Trim();
+                if (!string.IsNullOrEmpty(response))
+                    session.Messages.Add(new Message("assistant", response));
+                else
+                    AdvisorMod.Log("Empty response — message not added to chat");
+
                 lock (_streamLock) _streamingText = "";
                 _isStreaming = false;
                 _scrollToEnd = true;
