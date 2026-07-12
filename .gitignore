@@ -1,0 +1,18 @@
+# Build artifacts
+bin/
+obj/
+
+# IDE
+.vs/
+*.user
+*.suo
+*.userprefs
+
+# Runtime files - contain sensitive data or are machine-specific
+config.json
+chats/
+advisor.log
+
+# OS
+Thumbs.db
+.DS_Store
