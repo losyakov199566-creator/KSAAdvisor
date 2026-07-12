@@ -150,28 +150,28 @@ public class GameStateReader
                 var apo  = ToDouble(orb.Orbit.Apoapsis);
                 var peri = ToDouble(orb.Orbit.Periapsis);
                 var per  = ToDouble(orb.Orbit.Period);
-                sb.AppendLine($"  Orbit:  {FmtDist(peri)} – {FmtDist(apo)}");
+                sb.AppendLine($"  Orbit:  {FmtDist(peri)} \u2013 {FmtDist(apo)}");
                 sb.AppendLine($"  Period: {FmtPeriod(per)}");
                 sb.AppendLine($"  Around: {orb.Parent?.Id ?? "?"}");
 
                 var ta = orb.Orbit.GetTrueAnomaly();
                 if (double.IsFinite(ta.Value()))
-                    sb.AppendLine($"  True anomaly: {ta.Value() * 180.0 / Math.PI:F1}°");
+                    sb.AppendLine($"  True anomaly: {ta.Value() * 180.0 / Math.PI:F1}\u00b0");
             }
 
             if (astro is Celestial cel)
             {
                 sb.AppendLine($"  Radius: {cel.MeanRadius / 1000.0:F0} km");
                 if (cel.Mass > 0)
-                    sb.AppendLine($"  μ: {6.6743e-11 * cel.Mass:E3} m³/s²");
+                    sb.AppendLine($"  \u03bc: {6.6743e-11 * cel.Mass:E3} m\u00b3/s\u00b2");
                 if (double.IsFinite(cel.Eccentricity))
                     sb.AppendLine($"  Eccentricity: {cel.Eccentricity:F4}");
                 if (double.IsFinite(cel.Inclination))
-                    sb.AppendLine($"  Inclination: {cel.Inclination * 180.0 / Math.PI:F2}°");
+                    sb.AppendLine($"  Inclination: {cel.Inclination * 180.0 / Math.PI:F2}\u00b0");
                 if (double.IsFinite(cel.LongitudeOfAscendingNode))
-                    sb.AppendLine($"  LAN: {cel.LongitudeOfAscendingNode * 180.0 / Math.PI:F2}°");
+                    sb.AppendLine($"  LAN: {cel.LongitudeOfAscendingNode * 180.0 / Math.PI:F2}\u00b0");
                 if (double.IsFinite(cel.ArgumentOfPeriapsis))
-                    sb.AppendLine($"  AoP: {cel.ArgumentOfPeriapsis * 180.0 / Math.PI:F2}°");
+                    sb.AppendLine($"  AoP: {cel.ArgumentOfPeriapsis * 180.0 / Math.PI:F2}\u00b0");
                 if (double.IsFinite(cel.SphereOfInfluence) && cel.SphereOfInfluence > 0)
                     sb.AppendLine($"  SOI: {FmtDist(cel.SphereOfInfluence)}");
 
@@ -245,7 +245,7 @@ public class GameStateReader
             {
                 if (astro is not IOrbiter orb || orb.Orbit == null) continue;
                 var ta  = orb.Orbit.GetTrueAnomaly().Value();
-                var deg = double.IsFinite(ta) ? $"{ta * 180.0 / Math.PI:F1}°" : "?";
+                var deg = double.IsFinite(ta) ? $"{ta * 180.0 / Math.PI:F1}\u00b0" : "?";
                 sb.AppendLine($"  {astro.Id}: {deg}");
             }
             return sb.ToString();
@@ -316,7 +316,7 @@ public class GameStateReader
                 var r     = ToDouble(orbit.Parent.MeanRadius);
                 var apo   = (ToDouble(orbit.Apoapsis)  - r) / 1000.0;
                 var peri  = (ToDouble(orbit.Periapsis) - r) / 1000.0;
-                sb.AppendLine($"  {v.Id}: {apo:F0}×{peri:F0} km around {orbit.Parent.Id}");
+                sb.AppendLine($"  {v.Id}: {apo:F0}\u00d7{peri:F0} km around {orbit.Parent.Id}");
             }
             return sb.ToString();
         }
@@ -378,6 +378,26 @@ public class GameStateReader
         {
             AdvisorMod.Log($"CreateCircularizationBurn error: {ex.Message}");
             return $"Error creating burn: {ex.Message}";
+        }
+    }
+
+    public string GetKeyBindings()
+    {
+        try
+        {
+            var sb = new StringBuilder("Key bindings:\n");
+            foreach (InputAction action in Enum.GetValues<InputAction>())
+            {
+                if (action == InputAction.None) continue;
+                var key = Input.GetAssignmentString(action);
+                sb.AppendLine($"  {action}: {key}");
+            }
+            return sb.ToString();
+        }
+        catch (Exception ex)
+        {
+            AdvisorMod.Log($"GetKeyBindings error: {ex.Message}");
+            return $"Error reading key bindings: {ex.Message}";
         }
     }
 
