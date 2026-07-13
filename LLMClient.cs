@@ -12,7 +12,6 @@ public class LLMClient
     private readonly GameStateReader _reader;
     private Config                   _config;
 
-    // Используется если пользователь не указал свой Provider URL в Settings
     private const string DefaultBaseUrl = "https://openrouter.ai/api/v1";
 
     private string EffectiveBaseUrl =>
@@ -103,6 +102,14 @@ public class LLMClient
         new {
             type     = "function",
             function = new {
+                name        = "get_key_bindings",
+                description = "Get current key bindings for all game actions. Use when the user asks what key does something, or how to perform a specific action.",
+                parameters  = new { type = "object", properties = new { }, required = Array.Empty<string>() }
+            }
+        },
+        new {
+            type     = "function",
+            function = new {
                 name        = "warp_time",
                 description = "Warp game time forward by specified number of days.",
                 parameters  = new {
@@ -164,6 +171,9 @@ public class LLMClient
 
                 case "get_other_vessels":
                     return _reader.GetOtherVessels();
+
+                case "get_key_bindings":
+                    return _reader.GetKeyBindings();
 
                 case "create_circularization_burn":
                 {
@@ -233,7 +243,6 @@ public class LLMClient
             string? connError  = null;
             HttpResponseMessage? resp = null;
 
-            // require_parameters — OpenRouter-specific, не отправляем прямым провайдерам
             var isOpenRouter = string.IsNullOrWhiteSpace(_config.BaseUrl)
                 || EffectiveBaseUrl.Contains("openrouter.ai");
 
